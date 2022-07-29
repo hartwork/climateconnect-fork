@@ -62,7 +62,11 @@ export default function EnterBasicOrganizationInfo({
         onUnselect: onUnselect,
         filterOut: [],
       },
-      onlyShowIfChecked: "hasparentorganization",
+      //TODO: make sure that this still works
+      onlyShowIfFieldHasValue: {
+        fieldName: "hasparentorganization",
+        value: true
+      },
       value: organizationInfo["parentorganizationname"],
     },
     ...getLocationFields({

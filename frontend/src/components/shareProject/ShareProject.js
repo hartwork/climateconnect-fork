@@ -83,46 +83,8 @@ export default function Share({
       ? project.parent_organization.name
       : project.parent_organization
     : "";
-  const legacyModeEnabled = process.env.ENABLE_LEGACY_LOCATION_FORMAT === "true";
-  const fields = [
-    {
-      falseLabel: texts.personal_project,
-      trueLabel: texts.organizations_project,
-      key: "is_organization_project",
-      type: "switch",
-      checked: project.is_organization_project,
-    },
-    {
-      required: true,
-      label: texts.organization,
-      select: {
-        values: organizationOptions,
-        defaultValue: parent_organization_name,
-      },
-      key: "parent_organization",
-      bottomLink: (
-        <Typography className={classes.orgBottomLink}>
-          {texts.if_your_organization_does_not_exist_yet_click_here}
-        </Typography>
-      ),
-      onlyShowIfChecked: "is_organization_project",
-    },
-    {
-      required: true,
-      label: texts.title_with_explanation_and_example,
-      type: "text",
-      key: "name",
-      value: project.name,
-    },
-    ...getLocationFields({
-      locationInputRef: locationInputRef,
-      locationOptionsOpen: locationOptionsOpen,
-      handleSetLocationOptionsOpen: handleSetLocationOptionsOpen,
-      values: project,
-      locationKey: "loc",
-      texts: texts,
-    }),
-  ];
+  const legacyModeEnabled = process.env.ENABLE_LEGACY_LOCATION_FORMAT === "true";  
+  const fields = getFields(userOrganizations?.length !== 0)
   const messages = {
     submitMessage: texts.next_step,
   };
@@ -190,4 +152,66 @@ export default function Share({
       />
     </>
   );
+}
+
+const switchField = {
+  falseLabel: texts.personal_project,
+  trueLabel: texts.organizations_project,
+  key: "is_organization_project",
+  type: "switch",
+  checked: project.is_organization_project,
+},
+
+const parentOrganizationField = {
+  required: true,
+  label: texts.organization,
+  select: {
+    values: organizationOptions,
+    defaultValue: parent_organization_name,
+  },
+  key: "parent_organization",
+  bottomLink: (
+    <Typography className={classes.orgBottomLink}>
+      {texts.if_your_organization_does_not_exist_yet_click_here}
+    </Typography>
+  ),
+  onlyShowIfFieldHasValue: {
+    fieldName: "is_organization_project",
+    value: true
+  },
+},
+
+const getNameField = (isPartOfOrg) => {
+  const field = {
+    required: true,
+    label: texts.title_with_explanation_and_example,
+    type: "text",
+    key: "name",
+    value: project.name
+  }
+  if(isPartOfOrg) {
+    field.onlyShowIfUnchecked = "is_organization_project"
+  }
+
+  return field
+}
+
+//TODO: add onlyShowIfUnchecked as custom property to location fields
+const locationField = getLocationFields({
+  locationInputRef: locationInputRef,
+  locationOptionsOpen: locationOptionsOpen,
+  handleSetLocationOptionsOpen: handleSetLocationOptionsOpen,
+  values: project,
+  locationKey: "loc",
+  texts: texts,
+}),
+
+function getFields(isPartOfOrg) {
+  const fields = [
+    switchField,
+    parentOrganizationField,
+    getNameField(isPartOfOrg),
+    ...locationField
+  ];
+  return fields
 }

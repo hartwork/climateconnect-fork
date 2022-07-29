@@ -86,7 +86,19 @@ const useStyles = makeStyles((theme) => ({
 
 //TODO throw error if "label" isn't unique
 
-//@fields: [{required: boolean, label: text, type: CSS Input Type, progressOnFill: number, select:select(see below)}, ...]
+/*@fields: contains an array of fields that the form should display
+  [
+    {
+      required: boolean, 
+      label: text, 
+      type: CSS Input Type, 
+      progressOnFill: number, 
+      select:select(see below)},
+      onlyShowIfFieldHasValue: {fieldKey, value}
+    },
+    ...
+  ] 
+*/
 //@select: {selectValues: [{label:text, value: text}], defaultValue=text}
 //@messages: {submitMessage:text, headerMessage: text, bottomMessage:text}
 //@bottomLink: {text: text, href: url}
@@ -105,19 +117,11 @@ export default function Form({
   className,
   fieldClassName,
   autocomplete,
+  hideSubmitButton
 }) {
   const classes = useStyles();
   const [curPercentage, setCurPercentage] = React.useState(percentage);
-  const [values, setValues] = React.useState(
-    fields.reduce((obj, field) => {
-      if (field.select) obj[field.key] = field.select.defaultValue ? field.select.defaultValue : "";
-      else if (field.value) obj[field.key] = field.value;
-      else if (field.type === "checkbox" || field.type === "switch")
-        obj[field.key] = field.checked ? field.checked : false;
-      else obj[field.key] = "";
-      return obj;
-    }, {})
-  );
+  const [values, setValues] = React.useState(getInitialValues(fields));
 
   function updatePercentage(customValues) {
     const filledFields =
@@ -139,6 +143,8 @@ export default function Form({
     };
     if (type === "checkbox" || type === "switch") {
       const dependentFields = fields.filter(
+        //This also needs to work outside of checkbox and switch
+        //and need to be refactored to onlyShowIfFieldValue
         (f) => f.onlyShowIfChecked && f.onlyShowIfChecked === key
       );
       if (dependentFields.length) dependentFields.map((f) => (newValues[f.key] = ""));
@@ -186,7 +192,7 @@ export default function Form({
       <form
         action={formAction && formAction.action}
         method={formAction && formAction.method}
-        onSubmit={() => onSubmit(event, values)}
+        onSubmit={(event) => onSubmit(event, values)}
         autoComplete={autocomplete}
       >
         {errorMessage && (
@@ -195,10 +201,11 @@ export default function Form({
           </Typography>
         )}
         {fields.map((field) => {
-          if (
-            (!field.onlyShowIfChecked || values[field.onlyShowIfChecked] === true) &&
-            field.select
-          ) {
+          //Short circuit if field should not be shown because of value of check/switch
+          if(field.onlyShowIfFieldHasValue && values[field.onlyShowIfFieldHasValue.field] === field.onlyShowIfFieldHasValue.value) {
+            return
+          }
+          if (field.select) {
             let options = field.select.values;
             if (field.select.addEmptyValue) options = ["", ...options];
             return (
@@ -211,7 +218,7 @@ export default function Form({
                   label={field.label}
                   className={`${classes.blockElement} ${fieldClassName}`}
                   key={field.label + fields.indexOf(field)}
-                  onChange={() => handleValueChange(event, field.key, field.type, true)}
+                  onChange={(event) => handleValueChange(event, field.key, field.type, true)}
                 />
                 {field.bottomLink && field.bottomLink}
               </React.Fragment>
@@ -277,10 +284,7 @@ export default function Form({
                 className={`${classes.blockElement} ${fieldClassName}`}
               />
             );
-          } else if (
-            (!field.onlyShowIfChecked || values[field.onlyShowIfChecked] === true) &&
-            field.type === "autocomplete"
-          ) {
+          } else if (field.type === "autocomplete") {
             return (
               <AutoCompleteSearchBar
                 required={field.required}
@@ -298,7 +302,7 @@ export default function Form({
                 onUnselect={field.autoCompleteProps.onUnselect}
               />
             );
-          } else if (!field.onlyShowIfChecked || values[field.onlyShowIfChecked] === true) {
+          } else {
             return (
               <React.Fragment key={field.key}>
                 <TextField
@@ -318,15 +322,18 @@ export default function Form({
             );
           }
         })}
-        <Button
-          fullWidth={!alignButtonsRight}
-          variant="contained"
-          type="submit"
-          color="primary"
-          className={`${alignButtonsRight ? classes.rightAlignedButton : classes.blockElement}`}
-        >
-          {messages.submitMessage}
-        </Button>
+        {!hideSubmitButton && (
+          <Button
+            fullWidth={!alignButtonsRight}
+            variant="contained"
+            type="submit"
+            color="primary"
+            className={`${alignButtonsRight ? classes.rightAlignedButton : classes.blockElement}`}
+          >
+            {messages.submitMessage}
+          </Button>
+          )
+        }
       </form>
       {messages.bottomMessage || bottomLink ? (
         <Container className={classes.bottomMessageContainer}>
@@ -349,3 +356,14 @@ export default function Form({
     </div>
   );
 }
+
+const getInitialValues = (fields) => (
+  fields.reduce((obj, field) => {
+    if (field.select) obj[field.key] = field.select.defaultValue ? field.select.defaultValue : "";
+    else if (field.value) obj[field.key] = field.value;
+    else if (field.type === "checkbox" || field.type === "switch")
+      obj[field.key] = field.checked ? field.checked : false;
+    else obj[field.key] = "";
+    return obj;
+  }, {})
+)
