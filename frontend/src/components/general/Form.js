@@ -117,7 +117,7 @@ export default function Form({
   className,
   fieldClassName,
   autocomplete,
-  hideSubmitButton
+  hideSubmitButton,
 }) {
   const classes = useStyles();
   const [curPercentage, setCurPercentage] = React.useState(percentage);
@@ -136,20 +136,31 @@ export default function Form({
     }
   }
 
+  console.log(values);
+
   function handleValueChange(event, key, type, updateInstantly) {
+ 
+    console.log(event.target.checked);
+    console.log(event.target.value);
     const newValues = {
       ...values,
       [key]: type === "checkbox" || type === "switch" ? event.target.checked : event.target.value,
     };
+
+    console.log(newValues[key]);
+    console.log(key);
     if (type === "checkbox" || type === "switch") {
       const dependentFields = fields.filter(
         //This also needs to work outside of checkbox and switch
         //and need to be refactored to onlyShowIfFieldValue
-        (f) => f.onlyShowIfChecked && f.onlyShowIfChecked === key
+        (f) => f.onlyShowIfFieldHasValue?.value && f.onlyShowIfFieldHasValue?.value === key
       );
+      console.log(key);
       if (dependentFields.length) dependentFields.map((f) => (newValues[f.key] = ""));
     }
+
     setValues(newValues);
+    console.log(newValues);
     //setValues doesn't apply instantly, so we pass the new values to the updatePercentage function
     if (updateInstantly) updatePercentage(newValues);
   }
@@ -161,7 +172,8 @@ export default function Form({
   function handleBlur() {
     updatePercentage();
   }
-
+  console.log(fields);
+  console.log(values);
   return (
     <div className={`${className ? className : classes.root}`}>
       {messages.headerMessage ? (
@@ -201,10 +213,17 @@ export default function Form({
           </Typography>
         )}
         {fields.map((field) => {
+
           //Short circuit if field should not be shown because of value of check/switch
-          if(field.onlyShowIfFieldHasValue && values[field.onlyShowIfFieldHasValue.field] === field.onlyShowIfFieldHasValue.value) {
-            return
+          console.log("hi",  values[field.onlyShowIfFieldHasValue?.value],  field.onlyShowIfFieldHasValue?.type);
+          
+          if (
+            field.onlyShowIfFieldHasValue &&
+            values[field.onlyShowIfFieldHasValue?.value] === false
+          ) {
+            return;
           }
+
           if (field.select) {
             let options = field.select.values;
             if (field.select.addEmptyValue) options = ["", ...options];
@@ -322,7 +341,7 @@ export default function Form({
             );
           }
         })}
-        {!hideSubmitButton && (
+        {!hideSubmitButton && true && (
           <Button
             fullWidth={!alignButtonsRight}
             variant="contained"
@@ -332,8 +351,7 @@ export default function Form({
           >
             {messages.submitMessage}
           </Button>
-          )
-        }
+        )}
       </form>
       {messages.bottomMessage || bottomLink ? (
         <Container className={classes.bottomMessageContainer}>
@@ -357,13 +375,13 @@ export default function Form({
   );
 }
 
-const getInitialValues = (fields) => (
+const getInitialValues = (fields) =>
   fields.reduce((obj, field) => {
     if (field.select) obj[field.key] = field.select.defaultValue ? field.select.defaultValue : "";
     else if (field.value) obj[field.key] = field.value;
     else if (field.type === "checkbox" || field.type === "switch")
       obj[field.key] = field.checked ? field.checked : false;
     else obj[field.key] = "";
+
     return obj;
-  }, {})
-)
+  }, {});

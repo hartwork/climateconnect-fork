@@ -1,4 +1,4 @@
-import { Typography } from "@material-ui/core";
+import { Typography, Button } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 import React, { useContext, useRef } from "react";
 
@@ -83,8 +83,45 @@ export default function Share({
       ? project.parent_organization.name
       : project.parent_organization
     : "";
-  const legacyModeEnabled = process.env.ENABLE_LEGACY_LOCATION_FORMAT === "true";  
-  const fields = getFields(userOrganizations?.length !== 0)
+
+  function getFields(isPartOfOrg) {
+    const fields = isPartOfOrg ?
+      [
+          switchField(texts, project),
+          parentOrganizationField(
+            texts,
+            parent_organization_name,
+            organizationOptions,
+            classes.orgBottomLink
+          ),
+          getNameField(isPartOfOrg, texts, project),
+          ...locationField(
+            texts,
+            project,
+            handleSetLocationOptionsOpen,
+            locationOptionsOpen,
+            locationInputRef,
+            isPartOfOrg
+          ),
+        ] : [
+          switchField(texts, project),
+          getNameField(isPartOfOrg, texts, project),
+          ...locationField(
+            texts,
+            project,
+            handleSetLocationOptionsOpen,
+            locationOptionsOpen,
+            locationInputRef,
+            isPartOfOrg
+          ),
+        ]
+      
+    return fields;
+  }
+
+  const legacyModeEnabled = process.env.ENABLE_LEGACY_LOCATION_FORMAT === "true";
+  const fields = getFields(!!userOrganizations);
+
   const messages = {
     submitMessage: texts.next_step,
   };
@@ -142,6 +179,7 @@ export default function Share({
           </Typography>
         </div>
       )}
+
       <Form
         className={classes.form}
         fields={fields}
@@ -149,69 +187,80 @@ export default function Share({
         onSubmit={onSubmit}
         alignButtonsRight
         fieldClassName={classes.field}
+        hideSubmitButton={!userOrganizations}
       />
     </>
   );
 }
 
-const switchField = {
-  falseLabel: texts.personal_project,
-  trueLabel: texts.organizations_project,
-  key: "is_organization_project",
-  type: "switch",
-  checked: project.is_organization_project,
-},
+const switchField = (texts, project) => {
+  return {
+    falseLabel: texts.personal_project,
+    trueLabel: texts.organizations_project,
+    key: "is_organization_project",
+    type: "switch",
+    checked: project.is_organization_project,
+  };
+};
 
-const parentOrganizationField = {
-  required: true,
-  label: texts.organization,
-  select: {
-    values: organizationOptions,
-    defaultValue: parent_organization_name,
-  },
-  key: "parent_organization",
-  bottomLink: (
-    <Typography className={classes.orgBottomLink}>
-      {texts.if_your_organization_does_not_exist_yet_click_here}
-    </Typography>
-  ),
-  onlyShowIfFieldHasValue: {
-    fieldName: "is_organization_project",
-    value: true
-  },
-},
+const parentOrganizationField = (
+  texts,
+  parentOrganizatioName,
+  organizationOptions,
+  orgBottomLink,
+  isPartOfOrg
+) => {
+  return {
+    required: true,
+    label: texts.organization,
+    select: {
+      values: organizationOptions,
+      defaultValue: parentOrganizatioName,
+    },
+    key: "parent_organization",
+    bottomLink: (
+      <Typography className={orgBottomLink}>
+        {texts.if_your_organization_does_not_exist_yet_click_here}
+      </Typography>
+    ),
+    onlyShowIfFieldHasValue: {
+      value: "is_organization_project"
+    },
+  };
+};
 
-const getNameField = (isPartOfOrg) => {
+// always show if personal project, hide if org project and is not part of org
+const getNameField = (isPartOfOrg, texts, project) => {
   const field = {
     required: true,
     label: texts.title_with_explanation_and_example,
     type: "text",
     key: "name",
-    value: project.name
-  }
-  if(isPartOfOrg) {
-    field.onlyShowIfUnchecked = "is_organization_project"
-  }
+    value: project.name,
+    onlyShowIfFieldHasValue: {
+      value: isPartOfOrg ? true : "is_organization_project",
+    },
+  };
 
-  return field
-}
+  return field;
+};
 
 //TODO: add onlyShowIfUnchecked as custom property to location fields
-const locationField = getLocationFields({
-  locationInputRef: locationInputRef,
-  locationOptionsOpen: locationOptionsOpen,
-  handleSetLocationOptionsOpen: handleSetLocationOptionsOpen,
-  values: project,
-  locationKey: "loc",
-  texts: texts,
-}),
-
-function getFields(isPartOfOrg) {
-  const fields = [
-    switchField,
-    parentOrganizationField,
-    getNameField(isPartOfOrg),
-    ...locationField
-  ];
-  return fields
-}
+const locationField = (
+  texts,
+  project,
+  handleSetLocationOptionsOpen,
+  locationOptionsOpen,
+  locationInputRef,
+  isPartOfOrg
+) => {
+  return getLocationFields({
+    locationInputRef: locationInputRef,
+    locationOptionsOpen: locationOptionsOpen,
+    handleSetLocationOptionsOpen: handleSetLocationOptionsOpen,
+    values: project,
+    locationKey: "loc",
+    texts: texts,
+    value: isPartOfOrg ? true : "is_organization_project",
+  });
+};

@@ -174,16 +174,21 @@ export function getLocationFields({
   values,
   locationKey,
   texts,
+  value,
 }) {
   //in legacy mode, return a city and a country field
-  if (process.env.ENABLE_LEGACY_LOCATION_FORMAT === "true") {
-    return [
+  
+  const getLegacyField = () => {
+    const field = [
       {
         required: true,
         label: texts.city,
         type: "text",
         key: "city",
         value: values[locationKey].city,
+        onlyShowIfFieldHasValue: {
+          value: value,
+        },
       },
       {
         required: true,
@@ -191,22 +196,43 @@ export function getLocationFields({
         type: "text",
         key: "country",
         value: values[locationKey].country,
+        onlyShowIfFieldHasValue: {
+          value: value,
+        },
       },
     ];
+
+    return field;
+  };
+  const getNormalField = () => {
+    const field = [
+      {
+        required: true,
+        label: texts.location,
+        type: "location",
+        key: locationKey ? locationKey : "location",
+        value: values[locationKey],
+        ref: locationInputRef,
+        locationOptionsOpen: locationOptionsOpen,
+        handleSetLocationOptionsOpen: handleSetLocationOptionsOpen,
+
+        onlyShowIfFieldHasValue: {
+          value: value,
+        },
+      },
+    ];
+
+    return field;
+  };
+
+  if (process.env.ENABLE_LEGACY_LOCATION_FORMAT === "true") {
+    const field = getLegacyField();
+    return field;
   }
+
   //normally, just return a location field
-  return [
-    {
-      required: true,
-      label: texts.location,
-      type: "location",
-      key: locationKey ? locationKey : "location",
-      value: values[locationKey],
-      ref: locationInputRef,
-      locationOptionsOpen: locationOptionsOpen,
-      handleSetLocationOptionsOpen: handleSetLocationOptionsOpen,
-    },
-  ];
+  const field = getNormalField();
+  return field;
 }
 
 export function getLocationValue(values, locationKey) {

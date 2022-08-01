@@ -65,7 +65,7 @@ export default function EnterBasicOrganizationInfo({
       //TODO: make sure that this still works
       onlyShowIfFieldHasValue: {
         fieldName: "hasparentorganization",
-        value: true
+        value: "hasparentorganization",
       },
       value: organizationInfo["parentorganizationname"],
     },
