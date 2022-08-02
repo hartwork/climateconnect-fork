@@ -82,6 +82,12 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     alignItems: "center",
   },
+  buttonContainer: {
+    maxWidth: 700,
+    height: 56,
+    margin: "0 auto",
+    marginTop: theme.spacing(2),
+  },
 }));
 
 //TODO throw error if "label" isn't unique
@@ -139,7 +145,6 @@ export default function Form({
   console.log(values);
 
   function handleValueChange(event, key, type, updateInstantly) {
- 
     console.log(event.target.checked);
     console.log(event.target.value);
     const newValues = {
@@ -174,6 +179,22 @@ export default function Form({
   }
   console.log(fields);
   console.log(values);
+  console.log(hideSubmitButton, "button");
+
+  const submitButton = () => {
+    return (
+      <Button
+        fullWidth={!alignButtonsRight}
+        variant="contained"
+        type="submit"
+        color="primary"
+        className={`${alignButtonsRight ? classes.rightAlignedButton : classes.blockElement}`}
+      >
+        {messages.submitMessage}
+      </Button>
+    );
+  };
+
   return (
     <div className={`${className ? className : classes.root}`}>
       {messages.headerMessage ? (
@@ -212,16 +233,72 @@ export default function Form({
             {errorMessage}
           </Typography>
         )}
-        {fields.map((field) => {
 
+        {fields.map((field) => {
           //Short circuit if field should not be shown because of value of check/switch
-          console.log("hi",  values[field.onlyShowIfFieldHasValue?.value],  field.onlyShowIfFieldHasValue?.type);
-          
-          if (
-            field.onlyShowIfFieldHasValue &&
-            values[field.onlyShowIfFieldHasValue?.value] === false
-          ) {
-            return;
+          console.log(
+            "x",
+            values[field.onlyShowIfFieldHasValue?.value],
+            "y",
+            !field.onlyShowIfFieldHasValue?.value,
+            "z",
+            field?.onlyShowIfFieldHasValue
+          );
+
+          if (typeof hideSubmitButton === "undefined") {
+            if (
+              field.onlyShowIfFieldHasValue &&
+              (!field.onlyShowIfFieldHasValue?.value ||
+                values[field.onlyShowIfFieldHasValue?.value] === false)
+            ) {
+              console.log(" ye");
+              return;
+            }
+          } else {
+            if (
+              !hideSubmitButton &&
+              field.onlyShowIfFieldHasValue &&
+              (!field.onlyShowIfFieldHasValue?.value === true ||
+                values[field.onlyShowIfFieldHasValue?.value]) === true
+            ) {
+              if (field.type === "button") {
+                return (
+                  <Button
+                    className={` ${fieldClassName} ${classes.buttonContainer} `}
+                    startIcon={field.startIcon}
+                    key={field.key}
+                    variant={field.variant}
+                    fullWidth={field.fullWidth}
+                    color={field.color}
+                    onClick={field.onClick}
+                  >
+                    {field.label}
+                  </Button>
+                );
+              }
+
+              console.log("no orgs so here");
+              return;
+            } else if (
+              !hideSubmitButton &&
+              field.onlyShowIfFieldHasValue &&
+              (!field.onlyShowIfFieldHasValue?.value === true ||
+                values[field.onlyShowIfFieldHasValue?.value]) === false
+            ) {
+              console.log("everything is false atm");
+
+              if (field.type === "button") {
+                return submitButton();
+              }
+            } else if (
+              hideSubmitButton &&
+              field.onlyShowIfFieldHasValue &&
+              (!field.onlyShowIfFieldHasValue?.value ||
+                values[field.onlyShowIfFieldHasValue?.value] === false)
+            ) {
+              console.log(" orgs so here");
+              return;
+            }
           }
 
           if (field.select) {
@@ -321,6 +398,19 @@ export default function Form({
                 onUnselect={field.autoCompleteProps.onUnselect}
               />
             );
+          } else if (field.type === "button") {
+            return (
+              <Button
+                className={` ${fieldClassName} ${classes.buttonContainer} `}
+                startIcon={field.startIcon}
+                key={field.key}
+                variant={field.variant}
+                fullWidth={field.fullWidth}
+                color={field.color}
+              >
+                {field.label}
+              </Button>
+            );
           } else {
             return (
               <React.Fragment key={field.key}>
@@ -341,17 +431,9 @@ export default function Form({
             );
           }
         })}
-        {!hideSubmitButton && true && (
-          <Button
-            fullWidth={!alignButtonsRight}
-            variant="contained"
-            type="submit"
-            color="primary"
-            className={`${alignButtonsRight ? classes.rightAlignedButton : classes.blockElement}`}
-          >
-            {messages.submitMessage}
-          </Button>
-        )}
+        {typeof hideSubmitButton === "undefined"
+          ? [submitButton()]
+          : [hideSubmitButton && submitButton()]}
       </form>
       {messages.bottomMessage || bottomLink ? (
         <Container className={classes.bottomMessageContainer}>

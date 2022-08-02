@@ -175,6 +175,7 @@ export function getLocationFields({
   locationKey,
   texts,
   value,
+  isPartOfOrg
 }) {
   //in legacy mode, return a city and a country field
   
@@ -215,11 +216,11 @@ export function getLocationFields({
         ref: locationInputRef,
         locationOptionsOpen: locationOptionsOpen,
         handleSetLocationOptionsOpen: handleSetLocationOptionsOpen,
-
-        onlyShowIfFieldHasValue: {
+        ...(!isPartOfOrg && {onlyShowIfFieldHasValue: {
           value: value,
-        },
-      },
+        }   }
+        ),
+      }
     ];
 
     return field;

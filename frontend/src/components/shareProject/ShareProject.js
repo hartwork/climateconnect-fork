@@ -1,6 +1,8 @@
-import { Typography, Button } from "@material-ui/core";
+import { Typography, Ad } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 import React, { useContext, useRef } from "react";
+import AddCircleOutlineIcon from "@material-ui/icons/AddCircleOutline";
+import Router from "next/router";
 
 // Relative imports
 import {
@@ -69,6 +71,10 @@ export default function Share({
     setLocationOptionsOpen(bool);
   };
 
+  const handleCreateOrgButton = () => {
+    Router.push("/createorganization");
+  };
+
   const organizations = !userOrganizations
     ? []
     : userOrganizations.map((org) => {
@@ -85,8 +91,8 @@ export default function Share({
     : "";
 
   function getFields(isPartOfOrg) {
-    const fields = isPartOfOrg ?
-      [
+    const fields = isPartOfOrg
+      ? [
           switchField(texts, project),
           parentOrganizationField(
             texts,
@@ -103,7 +109,8 @@ export default function Share({
             locationInputRef,
             isPartOfOrg
           ),
-        ] : [
+        ]
+      : [
           switchField(texts, project),
           getNameField(isPartOfOrg, texts, project),
           ...locationField(
@@ -114,8 +121,9 @@ export default function Share({
             locationInputRef,
             isPartOfOrg
           ),
-        ]
-      
+          buttonField(texts, isPartOfOrg, handleCreateOrgButton),
+        ];
+
     return fields;
   }
 
@@ -187,11 +195,28 @@ export default function Share({
         onSubmit={onSubmit}
         alignButtonsRight
         fieldClassName={classes.field}
-        hideSubmitButton={!userOrganizations}
+        hideSubmitButton={!!userOrganizations}
       />
     </>
   );
 }
+const buttonField = (texts, isPartOfOrg, handleCreateOrgButton) => {
+  const field = {
+    type: "button",
+    onClick: handleCreateOrgButton,
+    label: "Create Org",
+    variant: "contained",
+    fullWidth: true,
+    color: "primary",
+    startIcon: <AddCircleOutlineIcon></AddCircleOutlineIcon>,
+    ...(!isPartOfOrg && {
+      onlyShowIfFieldHasValue: {
+        value: "is_organization_project",
+      },
+    }),
+  };
+  return field;
+};
 
 const switchField = (texts, project) => {
   return {
@@ -207,8 +232,7 @@ const parentOrganizationField = (
   texts,
   parentOrganizatioName,
   organizationOptions,
-  orgBottomLink,
-  isPartOfOrg
+  orgBottomLink
 ) => {
   return {
     required: true,
@@ -224,7 +248,7 @@ const parentOrganizationField = (
       </Typography>
     ),
     onlyShowIfFieldHasValue: {
-      value: "is_organization_project"
+      value: "is_organization_project",
     },
   };
 };
@@ -237,9 +261,11 @@ const getNameField = (isPartOfOrg, texts, project) => {
     type: "text",
     key: "name",
     value: project.name,
-    onlyShowIfFieldHasValue: {
-      value: isPartOfOrg ? true : "is_organization_project",
-    },
+    ...(!isPartOfOrg && {
+      onlyShowIfFieldHasValue: {
+        value: "is_organization_project",
+      },
+    }),
   };
 
   return field;
@@ -261,6 +287,7 @@ const locationField = (
     values: project,
     locationKey: "loc",
     texts: texts,
-    value: isPartOfOrg ? true : "is_organization_project",
+    isPartOfOrg: isPartOfOrg,
+    value: "is_organization_project",
   });
 };
