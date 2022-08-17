@@ -14,7 +14,6 @@ import React, { useContext, useState, useEffect } from "react";
 import Linkify from "react-linkify";
 import Cookies from "universal-cookie";
 import FeedbackContext from "../context/FeedbackContext";
-import { getImageUrl } from "../../../public/lib/imageOperations";
 import { getLocalePrefix } from "../../../public/lib/apiOperations";
 import DetailledDescription from "./DetailledDescription";
 import getTexts from "../../../public/texts/texts";
@@ -473,10 +472,7 @@ export default function AccountPage({
         <Container className={classes.avatarWithInfo}>
           <div className={classes.avatarContainer}>
             {account.badges?.length > 0 ? (
-              <ProfileBadge
-                name={account.badges[0].name}
-                image={getImageUrl(account.badges[0].image)}
-              >
+              <ProfileBadge badge={account.badges[0]}>
                 <Avatar {...avatarProps} />
               </ProfileBadge>
             ) : (
