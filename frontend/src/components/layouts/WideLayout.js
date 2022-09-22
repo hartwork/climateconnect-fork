@@ -58,6 +58,7 @@ export default function WideLayout({
   rootClassName,
   hideFooter,
   resetAlertMessage,
+  isHubPage,
 }) {
   const classes = useStyles({ noSpaceBottom: noSpaceBottom, isStaticPage: isStaticPage });
   const [alertOpen, setAlertOpen] = React.useState(true);
@@ -97,6 +98,7 @@ export default function WideLayout({
         transparentHeader={transparentHeader}
         noSpacingBottom={isStaticPage}
         background={headerBackground}
+        isHubPage={isHubPage}
       />
       {isLoading ? (
         <LoadingContainer headerHeight={113} footerHeight={80} />
@@ -117,8 +119,8 @@ export default function WideLayout({
                 }
               }}
               onClose={() => {
+                resetAlertMessage && resetAlertMessage();
                 setAlertOpen(false);
-                //resetAlertMessage("");
               }}
             >
               {getMessageFromUrl(message ? message : initialMessage)}
