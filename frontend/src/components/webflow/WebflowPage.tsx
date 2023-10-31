@@ -15,9 +15,25 @@ export default function WebflowPage({
 }: any) {
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "navigation", locale: locale });
+  const extractScripts = (htmlString: any) => {
+    const scriptTagPattern = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi;
+    const matches = htmlString.match(scriptTagPattern);
+    console.log("++++", matches);
+    return matches || [];
+  };
+  const cssLinks = headContent.match(/<link[^>]*?href=["'](.*?\.css)["'][^>]*?>/g);
+
   return (
     <>
-      <Head>{parseHtml(headContent)}</Head>
+      <Head>
+        {/* Other head content */}
+        {cssLinks &&
+          cssLinks.map((link, index) => <link key={index} rel="stylesheet" href={link} />)}
+        {extractScripts(headContent).map((src, index) => (
+          <script key={index} dangerouslySetInnerHTML={{ __html: src }}></script>
+        ))}
+        {parseHtml(headContent)}
+      </Head>
       <WideLayout
         rootClassName={className}
         title={texts[pageKey]}
