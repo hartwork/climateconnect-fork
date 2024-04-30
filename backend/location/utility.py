@@ -51,6 +51,9 @@ def get_location(location_object):
     for attr in optional_attribute_names:
         if attr in location_object:
             optional_attributes[attr] = location_object[attr]
+        else:
+            optional_attributes[attr] = ""
+
     if loc.exists():
         return loc[0]
     elif location_object["type"] == "Point":
@@ -156,7 +159,7 @@ def format_location(location_string, already_loaded):
     if already_loaded:
         location_object = location_string
     else:
-        if type(location_string) == dict:
+        if isinstance(location_string, dict):
             location_object = location_string
         else:
             location_object = json.loads(location_string)[0]

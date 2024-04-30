@@ -1,5 +1,6 @@
 import logging
 import traceback
+from django.db.models import Case, When
 from organization.utility.follow import (
     get_list_of_project_followers,
     set_user_following_project,
@@ -115,6 +116,7 @@ from rest_framework.views import APIView
 from organization.utility.requests import MembershipRequestsManager
 from organization.utility import MembershipTarget
 from organization.models.type import ProjectTypesChoices
+from climateconnect_api.tasks import calculate_project_rankings
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +141,23 @@ class ListProjectsView(ListAPIView):
     serializer_class = ProjectStubSerializer
 
     def get_queryset(self):
-        projects = Project.objects.filter(is_draft=False, is_active=True)
+        user = self.request.user
+        user_profile = None
+        if user.is_authenticated:
+            user_profile = user.user_profile if user.user_profile else None  # noqa
+        # Get project ranking
+        projects = (
+            Project.objects.filter(is_draft=False, is_active=True)
+            .select_related("loc", "language", "status")
+            .prefetch_related(
+                "skills",
+                "tag_project",
+                "project_comment",
+                "project_liked",
+                "project_following",
+            )
+        )
+
         if "hub" in self.request.query_params:
             hub = Hub.objects.filter(url_slug=self.request.query_params["hub"])
             if hub.exists():
@@ -159,15 +177,17 @@ class ListProjectsView(ListAPIView):
                     ).distinct()
                 elif hub[0].hub_type == Hub.LOCATION_HUB_TYPE:
                     location = hub[0].location.all()[0]
-                    projects = projects.filter(
-                        Q(loc__country=location.country)
-                        & (
-                            Q(loc__multi_polygon__coveredby=(location.multi_polygon))
-                            | Q(loc__centre_point__coveredby=(location.multi_polygon))
+                    location_multipolygon = location.multi_polygon
+                    projects = projects.filter(Q(loc__country=location.country))
+                    if location_multipolygon:
+                        projects = projects.filter(
+                            Q(loc__multi_polygon__coveredby=(location_multipolygon))
+                            | Q(loc__centre_point__coveredby=(location_multipolygon))
+                        ).annotate(
+                            distance=Distance(
+                                "loc__centre_point", location_multipolygon
+                            )
                         )
-                    ).annotate(
-                        distance=Distance("loc__centre_point", location.multi_polygon)
-                    )
 
         if "collaboration" in self.request.query_params:
             collaborators_welcome = self.request.query_params.get("collaboration")
@@ -263,7 +283,19 @@ class ListProjectsView(ListAPIView):
                 country=self.request.query_params.get("country")
             )
             projects = projects.filter(loc__in=location_ids)
-        return projects
+
+        # Sort projects by its ranking
+        project_ids = [
+            project.id
+            for project in sorted(projects, key=lambda project: -project.cached_ranking)
+        ]
+        preferred_order = Case(
+            *(
+                When(id=id, then=position)
+                for position, id in enumerate(project_ids, start=1)
+            )
+        )
+        return projects.order_by(preferred_order)
 
 
 class CreateProjectView(APIView):
@@ -409,7 +441,7 @@ class CreateProjectView(APIView):
                         "Project tagging created for project {}".format(project.id)
                     )
 
-        #TODO: completely remove availability
+        # TODO: completely remove availability
         for member in team_members:
             user_role = roles.filter(id=int(member["role"])).first()
             try:
@@ -448,10 +480,11 @@ class CreateProjectView(APIView):
                 organization__name=organization.name
             )
 
-            create_organization_project_published_notification(
-                followers_of_org, organization, project
-            )
-
+            if not project.is_draft:
+                create_organization_project_published_notification(
+                    followers_of_org, organization, project
+                )
+        calculate_project_rankings([project.id])
         return Response(
             {
                 "message": "Project {} successfully created".format(project.name),
@@ -604,7 +637,7 @@ class ProjectAPIView(APIView):
 
         if "translations" in request.data:
             edit_translations(items_to_translate, request.data, project, "project")
-
+        calculate_project_rankings([project.id])
         return Response(
             {
                 "message": "Project {} successfully updated".format(project.name),
@@ -669,7 +702,6 @@ class AddProjectMembersView(APIView):
                 {"message": "Missing required parameters"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
         for member in request.data["team_members"]:
             try:
                 user = User.objects.get(id=int(member["id"]))
@@ -696,22 +728,25 @@ class AddProjectMembersView(APIView):
                 )
                 continue
             user_role = roles.filter(id=int(member["permission_type_id"])).first()
-            try:
-                user_availability = Availability.objects.filter(
-                    id=int(member["availability"])
-                ).first()
-            except Availability.DoesNotExist:
-                raise NotFound(
-                    detail="Availability not found.", code=status.HTTP_404_NOT_FOUND
-                )
             if user and not (user_inactive):
-                ProjectMember.objects.create(
+                new_member = ProjectMember.objects.create(
                     project=project,
                     user=user,
                     role=user_role,
                     role_in_project=member["role_in_project"],
-                    availability=user_availability,
                 )
+                if "availability" in member.keys():
+                    try:
+                        user_availability = Availability.objects.filter(
+                            id=int(member["availability"])
+                        ).first()
+                        new_member.availability = user_availability
+                        new_member.save()
+                    except Availability.DoesNotExist:
+                        raise NotFound(
+                            detail="Availability not found.",
+                            code=status.HTTP_404_NOT_FOUND,
+                        )
                 logger.info("Project member created for user {}".format(user.id))
             elif user and user_inactive:
                 record = ProjectMember.objects.get(project=project, user=user)
@@ -852,7 +887,7 @@ class ListProjectTypeOptions(APIView):
 
     def get(self, request):
         project_type_values = [type for type in PROJECT_TYPES.values()]
-        serializer = ProjectTypesSerializer(project_type_values, many=True) 
+        serializer = ProjectTypesSerializer(project_type_values, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 

@@ -1,6 +1,7 @@
 import logging
 from datetime import timedelta
 from typing import List
+from organization.models.project import Project
 
 from climateconnect_main.celery import app
 from django.conf import settings
@@ -23,7 +24,7 @@ def testing_task_1():
 
 @app.task
 def testing_task_2():
-    send_test_mail_to_engineering_email("task 2", "test2")
+    send_test_mail_to_engineering_email("task 2 - currently paused", "test2")
 
 
 @app.task
@@ -43,6 +44,8 @@ def schedule_automated_reminder_for_user_notifications():
         .values_list("user_id", flat=True)
         .distinct()
     )
+    # Pause notifications until we figure out celery issue with deployment slot
+    return
     for i in range(0, len(all_user_ids), settings.USER_CHUNK_SIZE):
         user_ids = [u_ids for u_ids in all_user_ids[i : i + settings.USER_CHUNK_SIZE]]
         send_email_notifications.apply_async((user_ids,))
@@ -56,13 +59,14 @@ def send_email_notifications(self, user_ids: List):
         except User.DoesNotExist:
             logger.info(f"User profile does not exists for user {u_id}")
             continue
-
+        
+        four_weeks_ago = timezone.now()-timedelta(weeks=4)
         unread_user_notifications = UserNotification.objects.filter(
             user=user,
             read_at__isnull=True,
             notification__notification_type=Notification.PRIVATE_MESSAGE,
+            notification__created_at__gte=four_weeks_ago
         )
-
         if (
             unread_user_notifications.exists()
             and user.user_profile
@@ -71,3 +75,28 @@ def send_email_notifications(self, user_ids: List):
             send_email_reminder_for_unread_notifications(
                 user=user, user_notifications=unread_user_notifications
             )
+
+
+@app.task
+def schedule_automated_update_to_project_ranks() -> None:
+    all_project_ids: List[int] = list(
+        Project.objects.all().values_list("id", flat=True)
+    )
+    PROJECT_CHUNK_SIZE = 100
+
+    for i in range(0, len(all_project_ids), PROJECT_CHUNK_SIZE):
+        project_ids = [p_ids for p_ids in all_project_ids[i : i + PROJECT_CHUNK_SIZE]]
+        calculate_project_rankings.apply_async((project_ids,))
+
+
+@app.task(bind=True)
+def calculate_project_rankings(self, project_ids: List[int]) -> None:
+    for project_id in project_ids:
+        try:
+            project = Project.objects.get(id=project_id)
+        except Project.DoesNotExist:
+            logger.error(f"[PROJECT_RANKING] Project does not exists for {project_id}.")
+            return
+
+        logger.info(f"[PROJECT_RANKING] calculate ranking for project {project.id}")
+        project.ranking
