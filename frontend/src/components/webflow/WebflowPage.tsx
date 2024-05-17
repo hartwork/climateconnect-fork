@@ -7,11 +7,18 @@ import WideLayout from "../layouts/WideLayout";
 import { DevLinkProvider } from "../../../devlink/DevLinkProvider";
 
 export default function WebflowPage({
-  children
+  children,
+  title,
+  pageKey,
+  description,
 }: any) {
+  const { locale } = useContext(UserContext);
+  const texts = getTexts({ page: "navigation", locale: locale });
   return (
     <>
       <WideLayout
+        title={title ? title : texts[pageKey]}
+        description={description}
         isStaticPage
         //TODO(unused) hideHeadline
         noSpaceBottom
