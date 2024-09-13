@@ -222,8 +222,8 @@ export default function ProjectPage({
   return (
     <WideLayout
       description={project?.short_description}
-      message={message?.message}
-      messageType={message?.messageType}
+      message={'message' in message && typeof message.message == "string" ?message.message : undefined}
+      messageType={'messageType' in message && typeof message.messageType == "string" ?message.messageType : undefined}
       title={project ? project.name : texts.project + " " + texts.not_found}
       subHeader={
         !tinyScreen ? (
@@ -271,6 +271,7 @@ export default function ProjectPage({
                   showSimilarProjects={showSimilarProjects}
                   locale={locale}
                   texts={texts}
+                  isSmallScreen={smallScreenSize}
                 />
               )}
             </div>
