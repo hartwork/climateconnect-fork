@@ -19,6 +19,7 @@ const useStyles = makeStyles((theme) => ({
     height: theme.spacing(8),
     borderTop: `1px solid ${theme.palette.grey[100]}`,
     width: "100%",
+    zIndex: "15"
   },
   absolutePosition: {
     position: "absolute",
@@ -28,6 +29,7 @@ const useStyles = makeStyles((theme) => ({
     position: "fixed",
     bottom: 0,
     backgroundColor: "#FFFFFF",
+    height: "49px",
   },
   spacingTop: {
     marginTop: theme.spacing(2),
