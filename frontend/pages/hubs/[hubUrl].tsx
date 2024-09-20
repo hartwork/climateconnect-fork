@@ -204,7 +204,9 @@ export default function Hub({
   };
 
   const scrollToSolutions = () => {
+    // @ts-ignore
     setNextStepTriggeredBy("showProjectsButton");
+    // @ts-ignore
     contentRef.current.scrollIntoView({ behavior: "smooth" });
   };
 
@@ -281,52 +283,6 @@ export default function Hub({
       >
         <div className={classes.content}>
           {<DonationCampaignInformation />}
-          {!isLocationHub && (
-            <NavigationSubHeader
-              type={"hub"}
-              hubName={name}
-              allHubs={allHubs}
-              isLocationHub={isLocationHub}
-              hubUrl={hubUrl}
-              navigationRequested={navRequested}
-            />
-          )}
-          {!isLocationHub && (
-            <HubHeaderImage
-              image={getImageUrl(image)}
-              source={image_attribution}
-              onClose={closeHubHeaderImage}
-              isLocationHub={isLocationHub}
-              statBoxTitle={statBoxTitle}
-              stats={stats}
-            />
-          )}
-          <HubContent
-            hubQuickInfoRef={hubQuickInfoRef}
-            headline={headline}
-            hubAmbassador={hubAmbassador}
-            quickInfo={quickInfo}
-            statBoxTitle={statBoxTitle}
-            stats={stats}
-            scrollToSolutions={scrollToSolutions}
-            detailledInfo={
-              hubDescription?.bodyContent ? (
-                <div dangerouslySetInnerHTML={{ __html: hubDescription.bodyContent }} />
-              ) : (
-                <HubDescription hub={hubUrl} texts={texts} />
-              )
-            }
-            hubUrl={hubUrl}
-            subHeadline={subHeadline}
-            hubProjectsButtonRef={hubProjectsButtonRef}
-            isLocationHub={isLocationHub}
-            location={hubLocation}
-            allHubs={allHubs}
-            hubData={hubData}
-            image={getImageUrl(image)}
-            source={image_attribution}
-          />
-          {!isLocationHub && <BrowseExplainer />}
           <BrowseContext.Provider value={contextValues}>
             <BrowseContent
               applyNewFilters={handleApplyNewFilters}
@@ -355,7 +311,54 @@ export default function Hub({
               resetTabsWhereFiltersWereApplied={resetTabsWhereFiltersWereApplied}
               hubUrl={hubUrl}
               tabNavigationRequested={requestTabNavigation}
-            />
+            >
+              {!isLocationHub && (
+                <NavigationSubHeader
+                  type={"hub"}
+                  hubName={name}
+                  allHubs={allHubs}
+                  isLocationHub={isLocationHub}
+                  hubUrl={hubUrl}
+                  navigationRequested={navRequested}
+                />
+              )}
+              {!isLocationHub && (
+                <HubHeaderImage
+                  image={getImageUrl(image)}
+                  source={image_attribution}
+                  onClose={closeHubHeaderImage}
+                  isLocationHub={isLocationHub}
+                  statBoxTitle={statBoxTitle}
+                  stats={stats}
+                />
+              )}
+              <HubContent
+                hubQuickInfoRef={hubQuickInfoRef}
+                headline={headline}
+                hubAmbassador={hubAmbassador}
+                quickInfo={quickInfo}
+                statBoxTitle={statBoxTitle}
+                stats={stats}
+                scrollToSolutions={scrollToSolutions}
+                detailledInfo={
+                  hubDescription?.bodyContent ? (
+                    <div dangerouslySetInnerHTML={{ __html: hubDescription.bodyContent }} />
+                  ) : (
+                    <HubDescription hub={hubUrl} texts={texts} />
+                  )
+                }
+                hubUrl={hubUrl}
+                subHeadline={subHeadline}
+                hubProjectsButtonRef={hubProjectsButtonRef}
+                isLocationHub={isLocationHub}
+                location={hubLocation}
+                allHubs={allHubs}
+                hubData={hubData}
+                image={getImageUrl(image)}
+                source={image_attribution}
+              />
+              {!isLocationHub && <BrowseExplainer />}
+            </BrowseContent>
           </BrowseContext.Provider>
         </div>
         {isSmallScreen && (

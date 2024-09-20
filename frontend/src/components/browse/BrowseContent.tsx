@@ -100,6 +100,7 @@ export default function BrowseContent({
   hubUrl,
   hubAmbassador,
   contentRef,
+  children,
 }: any) {
   const initialState = {
     items: {
@@ -532,6 +533,10 @@ export default function BrowseContent({
           allHubs={allHubs}
         />
       )}
+      {/* Insert a subheader like on the Hubpage   */}
+      {/* <div>This is my childeren slot  {Children.count(children)}</div> Standard-Slot */}
+      {children}
+
       <Container maxWidth="lg" className={classes.contentRefContainer}>
         <div ref={contentRef} className={classes.contentRef} />
         <Suspense fallback={null}>
