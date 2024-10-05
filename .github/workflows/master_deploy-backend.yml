@@ -6,8 +6,6 @@ name: Production backend server
 
 on:
   push:
-    branches:
-      - master
   workflow_dispatch:
 
 jobs:
